@@ -1,310 +1,72 @@
-﻿# **问题**
-2022 MCM Problem C: Trading Strategies
-## **Background**
-Market traders buy and sell volatile assets frequently, with a goal to maximize their total return. There is usually a commission for each purchase and sale. Two such assets are gold and bitcoin.
-## **Requirement**
-You have been asked by a trader to develop a model that uses only the past stream of daily prices to date to determine each day if the trader should buy, hold, or sell their assets in their portfolio.
+# Trading Strategies for Gold and Bitcoin
 
-You will start with $1000 on 9/11/2016. You will use the five-year trading period, from 9/11/2016 to 9/10/2021. On each trading day, the trader will have a portfolio consisting of cash, gold, and bitcoin [C, G, B] in U.S. dollars, troy ounces, and bitcoins, respectively. The initial state is [1000, 0, 0]. The commission for each transaction (purchase or sale) costs α% of the amount traded. Assume αgold = 1% and αbitcoin = 2%. There is no cost to hold an asset.
+## Background 
 
-To develop your model, you may only use the data in the two spreadsheets provided
+Market traders frequently buy and sell volatile assets with the goal of maximizing their total return. There is usually a commission for each purchase and sale. Two such assets are gold and bitcoin.
 
+## Requirement
 
-# **思路:**
-## **假设:**
-1.假设在第N天进行交易时, 知道直至第N天的黄金/比特币价格, 并以此价格买入, 从N+1天开始计算收益.
+You have been asked by a trader to develop a model that uses only the past daily price stream to determine each day if the trader should buy, hold, or sell assets in their portfolio. 
 
-2.假设持有现金无活期固定年利率2%增长.
+The model will be tested on a five-year trading period from 9/11/2016 to 9/10/2021. On each trading day, the trader's portfolio will consist of cash, gold, and bitcoin [C, G, B] valued in US dollars, troy ounces, and bitcoins respectively. The initial portfolio is [1000, 0, 0]. The commission for each transaction (purchase or sale) costs α% of the amount traded, with αgold = 1% and αbitcoin = 2%. There is no cost to hold an asset.
 
-3.假设黄金与比特币的交易费率在当天结算, 并且自第二天起产生收益.
-## **数据预处理**
-## **预测金价**
-bp神经网络(BP神经网络本质上线性权函数的逼近，指的是利用函数中的一些线性参数的变动来对要识别的模式或者函数进行某种逼近。该种方法在识别前后没有关联的数据时方可奏效)
-## **预测bitcoin**
-1.arch和multi variate解释清楚模型的参数对现实有什么意义
+To develop the model, only the data in the two provided spreadsheets can be used.
 
-2.rnn-lstm神经网络(时间序列数据是指在不同时间点上收集到的数据，这类数据反映了某一事物、现象等随时间的变化状态或程度。后面的数据跟前面的数据有关系)
-### **黄金价格稳定长期持有,比特币依据情形可能频繁交易**
-### **风险衡量:(1)周期价格波动越大,风险越大 (2)风险评价类模型,熵权法等算牛市熊市**
-## **买卖**
-最优化模型
+## Approach
 
-规划类方面，在目标函数与约束条件给定之后，如何更快地进行收敛是规划类的思考方向，可以采用PSO 粒子群算法，或者最近流行的鲸鱼算法、贪婪算法、灰狼算法等等这类智能算法进行优化，这里就要合理的使用智能算法，使得模型参数更优。
+### Assumptions
 
-(1)量化交易决策模型,
+1. When making trades on day N, the gold/bitcoin prices up to day N are known and can be used to buy at the day N price. Profits are calculated starting from day N+1.
 
-(2)循环决策模型构建,
+2. Cash earns a fixed 2% annual interest rate. 
 
-(3)建立一个目标规划函数(例如为：预测的明日黄金价格/今日黄金价格-1 要大于 0.01手续费)
+3. Commissions for gold and bitcoin trades are settled on the trade day, with profits starting the next day.
 
-(4)不用所谓正常的投资组合（如：Markowitz 投资组合目标规划模型）来进行求解，本质上他是一个动态规划模型,根据当日价格数据提供最佳每日交易策略  max Z=今日黄金价格/预测的明日黄金价格\*（今日黄金持有+今日黄金交易）+今日比特币价格/预测的明日比特币价格\*（今日比特币持有+今日比特币交易）约束条件例如：预测的明日黄金价格/今日黄金价格-1 要大于 0.01（手续费）\*预测的明日黄金价格
-## **鲁棒性分析**
-(1)模型误差 MSE、MAE、RMSE、RMAE 等指标衡量模型误差 (2)夏普比率、年化收益率从经济学角度
+### Data Preprocessing
 
-(3)扰动模型数据,结果是否变差(4)前面可能我们定了初始值黄金为N，那么比特币初始分配即为1000-N,所以以N为1，步阶设置为20（或者随意），迭代到1000，就可以得到第三步里面的资产总值，然后画个折线图，x轴为黄金的初始值，y为5年交易后的资产总值,查看N为多少时比较平稳，这就是灵敏度分析了
+- Fill in missing values
+- Normalize data
 
+### Predict Gold Prices
 
-# **草稿**
-数据预处理:fillmissing(A,'linear','SamplePoints',x);线性插值处理缺失数据
+- BP neural network
 
-数据归一化:mapminmax y = (ymax-ymin)\*(x-xmin)/(xmax-xmin) + ymin
+### Predict Bitcoin Prices 
 
-[bitPrice01,PSb]=mapminmax(bitPrice',0,1); [goldPrice01,PS]=mapminmax(goldPrice',0,1);
+- GM(1,1) grey forecasting model
 
-归一化反推: x=mapminmax('reverse',bitPrice01,PSb); 
+### Trading Strategy
 
-Bp预测金价: 
+- Gold: long-term hold, trade based on risk analysis
+- Bitcoin: short-term speculation, trade based on predicted price changes
 
-Wang Chengbiao(2007)[2]认为黄金价格受美元汇率、世界经济形势、通货膨胀、国际形势、国际贸易、原油价格、外汇政策、股票市场、财政赤字、动乱、战争等因素影响，这些因素大多数是不明确的。
+Consider 8 cases for each day:
 
-[2] Wang Chengbiao, Chen Yanhui, Li Lihong, The forecast of gold price based on the GM (1,1) and Markov chain[C], Proceedings of 2007 IEEE International Conference on Grey  Systems  and  Intelligent  Services,  2007,  Nanjing,  China, VOLS 1 AND 2:739-743
+1. Sell both: Sell half gold, all bitcoin
+2. Buy both: Half cash to gold, half to bitcoin  
+3. Buy gold, sell bitcoin: Sell all bitcoin, half cash to gold
+4. Sell gold, buy bitcoin: Sell all gold, half cash to bitcoin
+5. Only buy gold: Half cash to gold
+6. Only buy bitcoin: Half cash to bitcoin
+7. Only sell gold: Sell half gold
+8. Only sell bitcoin: Sell all bitcoin
 
-王中香等(2009)[45]指出黄金期货市场是一个极其复杂的非线性动力系统，建立了 BP 神经网络模型来预测黄金期货的价格。
+### Risk Measurement
 
-[45]  王中香,  王凤,  何穗,  基于神经网络的黄金期货价格的预测[J],  湖北师范学
+- VaR, CVaR for optimal asset allocation
+- Diversification: correlation analysis  
+- Volatility: standard deviation of returns
 
-院学报(自然科学版), 2009, 29(3):85-88
+### Robustness Analysis
 
-对于现实中大量存在的非线性、非平稳的复杂动力系统问题，非线性ARIMA模型应用中需要确定合适的模型阶数，这是比较困难的，在传统的预测方法解决效果欠佳的领域，应用神经网络等智能预测方法往往能够更有效。
+- Model accuracy metrics
+- Disturb input data and evaluate model stability
+- Vary initial gold/bitcoin allocation and analyze total portfolio value over time
 
-[1]李景阳.(2017).基于BP神经网络的时间序列预测研究(硕士学位论文,河南科技大学).https://kns.cnki.net/KCMS/detail/detail.aspx?dbname=CMFD201801&filename=1017829232.nh
+## Draft Details
 
-运用ARIMA模型,或者arch等传统时间序列预测模型,通常要综合考虑其他货币等因素的影响才能得到比较令人满意的结果.如果用ARIMA模型,或者arch等模型直接进行时间序列预测, 随着预测天数的增加，相对误差呈现出增长的趋势，只适用于短期预测，长期预测效果并不理想[?]
-
-非统计方法是预测非线性时间序列的有力工具。人工神经网络和灰色系统理论都是广泛用于预测非线性时间序列的非统计方法.
-
-[?]程铭.(2020).关于国际黄金价格的预测方法研究(硕士学位论文,山东大学).https://kns.cnki.net/KCMS/detail/detail.aspx?dbname=CMFD202002&filename=1020062875.nh
-
-数据预处理
-
-用神经网络预测时，输入变量一般具有不同的量纲和意义，因此需要用归一化的方法，将原始数据调控在［０，１］之间，公式如下：
-
-//Mapminmax的公式 
-
-其中为归一化后的数值，为样本数列的输入值，为样本数列的最小值，为样本数列的最大值。
-
-当取得输出值时，需要用反归一化方法处理预测变量，公式如下：
-
-//上面的相反 
-
-一般来说，BP神经网络包含有输入层、隐含层、输出层的三层以上结构。每一层结构都有多个神经元，每层神经元	之间通过权重连接，每层神经元之间信息无法流通，必须传入下一层的神经元。输入层将接受的外界输入信息传递给隐含层；隐含层通过神经元之间的权重和激活函数将信息传递给输出层；输出层输出最终的结果，具体的三层神经网络传输过程见图
-
-图中心ｘ是神经网络的输入值，y是神经网络的输出值，w是输入层到隐含层的权重，是隐含层到输出层的权重或输入层到隐含层的偏置，ｈ是隐含层到输出层的偏置。
-
-BP神经网络的算法分为两部分。首先是信息的向前传播，由输入层到隐含层最终到达输出层。其次是信息的向后传播，当输出结果与真实值的误差超过给定的误差区间时，通过向后传播调整模型的权数和阈值，使误差函数呈现梯度下降趋势。最后经过反复修正后使误差控制在设定的范围内，得到最小均方误差对应的权重，具体神经网络的学习流程见图
-
-激活函数确定:Hyperbolic tangent sigmoid transfer function and Linear transfer function. Transfer functions with n representing the input signal and an as the output
-
-在时间序列模型中，下一时刻的值依赖于历史时间段内的值，该历史时间段取多长的时刻是最佳的模型，值得思考。可以通过比较不同长度的时间段训练的BP时间序列神经网络模型误差，来确定最佳的自回归阶数（即时间段长度）。阶数太长则预测精度下降,阶数太短则不适合黄金的较长期投资的特点.综合两方面考虑,最终决定选择阶数为20的模型. 
-
-基于历史值的BP神经网络时间序列模型，t 时刻的预测值依赖于t-1，t-2，t-3，…，t-N时间段内的历史值。此处做出说明， 在训练神经网络的过程中，训练集的输入x与输出y数据都是实际值，在得到BP network模型进行测试时，给到模型中的输入值依然还是实际的历史值。这是因为，从构建时间序列模型的角度，做出了未来值依赖于历史值的假设；从神经网络识别的角度，只有给到神经网络的输入特征值为真实的，输出的预测值才有可能与实际情况符合。总之，时间序列的预测模型，训练+测试检验的预测部分即可。如果需要预测未来值（假设已知m个点，预测m+1，…，m+…的值），看未来趋势是可以的，但往后预测的时候，前t-1，t-2，t-3，…，t-N的历史值只能是来源于得到的预测值，这做法将产生累积误差，从长远来看，将导致不稳定，表现为趋势线震荡的图像。
-
-预测用间隔为20
-
-输入层的节点数为：20
-
-输出层的节点数为：1
-
-隐含层节点数为5时，训练集的均方误差为：0.00020242
-
-隐含层节点数为6时，训练集的均方误差为：0.00020988
-
-隐含层节点数为7时，训练集的均方误差为：0.0002
-
-隐含层节点数为8时，训练集的均方误差为：0.00019746
-
-隐含层节点数为9时，训练集的均方误差为：0.00019602
-
-隐含层节点数为10时，训练集的均方误差为：0.00019344
-
-隐含层节点数为11时，训练集的均方误差为：0.00020636
-
-隐含层节点数为12时，训练集的均方误差为：0.0001856
-
-隐含层节点数为13时，训练集的均方误差为：0.00020632
-
-隐含层节点数为14时，训练集的均方误差为：0.00020176
-
-最佳的隐含层节点数为：12，相应的均方误差为：0.0001856
-
-5误差平方和SSE为：            0.012456
-
-平均绝对误差MAE为：      0.011536
-
-均方误差MSE为：              0.00024912
-
-均方根误差RMSE为：        0.015783
-
-平均百分比误差MAPE为： 1.6242%
-
-相关系数R为：                     0.80194
-
-20误差平方和SSE为：            0.014072
-
-平均绝对误差MAE为：      0.013195
-
-均方误差MSE为：              0.00028144
-
-均方根误差RMSE为：        0.016776
-
-平均百分比误差MAPE为： 1.8611%
-
-相关系数R为：                     0.78124
-
-50误差平方和SSE为：            0.014486
-
-平均绝对误差MAE为：      0.01341
-
-均方误差MSE为：              0.00028972
-
-均方根误差RMSE为：        0.017021
-
-平均百分比误差MAPE为： 1.8898%
-
-相关系数R为：                     0.76791
-
-&SSE=i=1n yi-yi2MAE=1ni=1n |yi-yi|&MSE=SSEn=1ni=1n yi-yi2&RMSE=MSE=1ni=1n yi-yi2&MAPE=1n∑|yi-yi|yi&SST=i=1n yi-yi2&R2=SSRSST=SST-SSESST=1-SSESST=1-i=1n yi-yi2i=1n yi-yi2
-
-灰色系统预测比特币价
-
-Jalali(2020)采用了一阶灰色模型（GM（1,1））。它使用一阶微分方程来模拟时间序列的趋势。结果表明，GM（1,1）模型能够准确预测比特币的价格，通过选择合适的时间框架和管理投资资产，可以获得约98%的最大利润置信水平。将所提出的方法与RNN和BNN进行了比较，以证明本文提出的方法的准确性和鲁棒性。比较结果证实，灰色系统理论优于RNN和BNN。[?]
-
-[?]Jalali, M. F. M., & Heidari, H. (2020). Predicting changes in Bitcoin price using grey system theory. Financial Innovation, 6(1), 1-12.
-
-以现有的研究来看,由神经网络方法预测比特币价格的准确率在50%左右.[?1][?2][?3]
-
-[?1]Cocianu CL, Grigoryan H (2015) An artificial neural network for data forecasting purposes. Inform Economica 19(2):34–45
-
-[?2] Bahrammirzaee A (2010) A comparative survey of artificial intelligence applications in finance: artificial neural networks,expert system and hybrid intelligent systems. Neural Comput Applic 19(8):1165–1195
-
-[?3] Almeida J, Tata S, Moser A, Smit V (2015) Bitcoin prediciton using ANN. Neural Networks 7:1-12
-
-由于其不稳定的性质，加密货币预测并非易事。正因为比特币价格取决于许多不确定因素，所以预测价格并非易事。非统计方法是预测非线性时间序列的有力工具。人工神经网络和灰色系统理论都是广泛用于预测非线性时间序列的非统计方法.由于比特币价格在短期内容易出现剧烈变动,所以不考虑使用加入了历史价格因素的神经网络进行时间序列预测.最终我们决定用每五天的比特币价格,用灰色预测模型来预测后一天的比特币价格.
-
-GM（1,1）模型是用于预测时间序列的一阶灰色模式。在这个模型中，一个系统很容易用一阶微分方程来描述，只要有新数据可用，模板就会更新。为了符合数据的随机性，使用了累积生成算子（AGO）。微分方程GM（1,1）计算预测系统前n步的相关值。使用该预测值和逆累计生成算子（I-AGO）的最终目标是获得预测数据的主要值.使用GM（1,1）模型的主要原因是其建模简单、模型的实现以及对时间数据的低需求。在该系统中，需要四个观测点来检查不确定数据并降低错误率.
-
-在我们的模型中，参数a是发展指数，b是灰色触发值。GM（1,1）模型的精度取决于a和b的值以及建模过程中初始条件的选择。因此，选择参数的初始值对于提高该方法的准确性至关重要。因此，时间窗分析用于实现更准确的预测
-
-首先，考虑五个初始数据点，并预测第六个数据点。我们假设比特币价格存在，并根据这些初始数据进行预测。我们将此过程称为六天预测，因为所有六天的比特币价格都是使用此方法近似计算的。平均百分比误差（MAPE）用于比较结果，计算如下：
-
-为了说明该方法的有效性，使用Lilliefors检验来研究误差分布的正态性。Lilliefors检验是Kolmogorov-Smirnov检验的改进，在期望值及其方差未知时使用。
-
-投资组合
-
-相关性分析: Pearson相关系数为0.6626,呈弱正相关,可以用于分散
-
-风险计算:黄金用前20天的变异系数代表,比特币用前5天的变异系数代表(标准差除以均值，std(a)./mean(a))
-
-分别计算黄金和比特币的涨跌率,画出散点图.发现黄金涨跌幅度最大在百分之二到百分之六范围内,而比特币最大涨跌幅度甚至超过百分之二十.拟定投资方案如下:
-
-投资黄金的方式为长线持有,由于在bp模型运行的结果中发现,预测涨跌趋势与实际涨跌趋势相比有明显的延后性,所以在当日涨率超过2%或跌率超过4%之后,求得其后一天的风险,若价格下跌且风险超过0.1,则进行抛售操作;若价格上涨且风险小于0.2,则进行购入操作.
-
-投资比特币的方式为短线投机,预测下一天涨幅超过10%且风险小于0.3之后购入,预测下一天跌幅超过5%且风险大于0.5之后抛售.
-
-分为八种情况
-
-1.都抛售:g抛售一半,b全抛售; 		  2.都购入:零钱中1/2投入g, 1/2投入b
-
-3.入g售b:先抛售b,零钱中1/2投入g; 4.售g入b:先抛售g,零钱中1/2投入b
-
-5.只购g:零钱中一半投入g           6:只购b:零钱中一半投入b
-
-7.只卖g:卖一半g					   8.只卖b:全卖b
-
-风险推定(组合投资)
-
-1.相关性分析 - 是否可用于对冲（借鉴 Baur 和 Lucey（2010）在区分黄金对冲效用、风险分散效用和避险效用时所采取的定义：如果一项资产与另一项资产在长时间维度内具有明显的负相关关系时，可以认为该资产具有强效的风险对冲效用；如果一项资产与另一项资产在长时间维度内没有明显相关关系时，可以认为该资产具有弱效的风险对冲效用；如果一项资产与另一项资产在长时间维度内具有弱的正相关关系时，可以认为该资产具有风险分散效用。
-
-[56] Baur D G，Lucey B M. Is Gold a Hedge or a Safe Haven？  An Analysis of Stocks，Bonds and Gold[J]. Financial Review，2010，45（2）：217-229. ） 
-
-投资组合
-
-投资组合选择（PSP）是确定风险资产和无风险资产的比例，要求投资预期收益在期望的水平以上最大化风险最小化
-
-风险资产通常指买进股票、期货等
-
-给定每个风险资产的风险、预期收益、最低购入资金（或资金比率）、市场摩擦（交易费和税）、可接受风险水平、投资资金，确定每个资产的购买数量，最大化预期收益的同时最小化风险。
-
-实验表明，利用 PSP 的最优子结构，混合动态规划、有效上界、局部搜索和蚁群优化及分支限界方法的混合算法是目前求解 PSP 的最好算法
-
-整数规划
-
-投资原则为期望回报尽可能大但相应的风险尽可能小。回报可用无风险资产的回报与风险资产的回报和r1x1+
-
-风险采用历史周期回报率小于平均回报率的差的绝对值的和
-
-回报减风险或者回报除以风险的表达式的最大值均可表达风险投资原则。考虑如下 n个风险资产和一个无风险资产的投资组合选择的整数规划模型：
-
-多目标规划
-
-大量实证发现，金融时间序列中的收益率序列往往有以下几个显著的特征：
-
-1.波动集中出现，也就是说存在波动聚集性；
-
-2.波动率的变化过程一般比较平稳，几乎不存在跳跃，并且这种变化与时间息息相关；
-
-3.同一金融资产的收益率序列也比较平稳，之间的变化程度都很小；
-
-4.金融资产波动率的振幅与其价格息息相关，也就是说金融资产中收益率序列向下小幅度的波动往往会引起金融资产价格的大幅度的波动，这也是我们常说的“杠杆效应”。
-
-Var是用统计的方法来研究金融时间序列中收益率序列中尾部损失的一种风险测量方法，也是近几年来最重要的一种测量市场风险的方法。Var的一个最突出的优势在于可以把市场风险表示成一定置信水平下的一个单独的数字。
-
-CVar作为测量方法的改进。模型的保险性能更高，在风险测量方面具有很大的优势，它被用来估计在一定置信度下，资产的损失超过Var的平均值。
-
-目前度量VaR的模型总体上可以分为两大类：参数模型和非参数模型。参数模型，通过假定收益率分布服从一定的分布来估计VaR。而非参数模型，则不需要对收益率的分布做任何假设，它通过对已有历史数据的分析、模拟来估计VaR的值。
-
-VaR回答了这个问题：发生损失大于给定VaR的概率小于α，也就是我们可以用1-α的概率认为损失不会超过VaR。
-
-公式为:prob（-Δp＞VaR） = α, 其中Δp为证券组合在持有期Δt内的损失；α为预先给定的置信度；VaR为在置信度α下处于风险中的价值。
-
-计算VaR有多种方法，这里介绍其中三种，1.参数法；2.历史模拟法；3.蒙特卡洛模拟法。计算结果用小数表示为证券组合在下一个阶段最大损失率。
-
-一.历史数据法
-
-历史数据法是根据每种资产的历史损益数据计算当前组合的损益数据,将 N 个历史收益 数据从低水平到高水平依次排列,那么位于(1-α)\*N 处的临界收益值 R\* 就是 VaR 的估计值。
-
-二.历史数据模拟法
-
-按照证券组合的权重，计算在这500个交易日内，该证券组合的市值。并计算从1~500天，证券组合市值的变化比率。由此得出证券组合每天价值变化的概率分布图，分布中对应的5%的分位数，对应于500个计算市值的第25个价值变化，VaR的估计刚好对应于第5个百分比分位数对应的损失。则我们有95%的把我，证券组合对应的损失会小于我们的VaR估计值。
-
-1。方差-协方差方法
-
-计算VaR的数值，一般假设资产组合的对数日均收益率服从均值为 [公式] ，标准差为 [公式] 的正态分布。持有期 [公式] 每一日的收益率均服从相同的独立同分布。
-
-[公式]
-
-此时计算在置信水平 [公式] 下，持有 [公式] 期的VaR值为：
-
-[公式] ，
-
-此时 [公式] 是资产组合的现值， [公式] 是置信水平 [公式] 下的正态分布值，[公式] 是标准方差，现实中是资产组合收益率的日波动率。这里需要注意的是，日均波动率与周波动率，月波动率，年波动率的转化关系。其转换原则是按照实际交易日来计算而不是日历时间来计算。
-
-周波动率[公式] ；月波动率[公式]；年波动率[公式]
-
-对于不同的资产组合其分配的权重为：[公式] 并且满足 [公式]
-
-此时资产组合的标准差为： [公式]
-
-投资方法:
-
-\0.
-
-(1)由每天本金,判断下一天本金的函数
-
-(2)投资黄金的函数:若现金<200,则全投入;若现金>=200又<=400,则投入200;若现金>400则投入一半
-
-(3)投资btc的函数:若现金<200,则全投入;若现金>=200又<=400,则投入200;若现金>400则投入一半
-
-(4)出售黄金的函数:若黄金<200则不出售;若黄金>=200又<=400,则出售到200;若黄金>400则出售一半
-
-(5)出售btc的函数:若btc<200则不出售;若btc>=200又<=400,则出售到200;若btc>400则出售一半
-
-1.黄金:
-
-(1)每gDays交易日一次,如果portvrisk函数求得的VaR>gVaRup,则投资; 如果portvrisk函数求得的VaR<gVaRlow,则出售;
-
-(2)每跌幅超过gDecrease,如果预测明天比例大于gDecrease,则投资
-
-2.比特币;
-
-每天预测,如果预测涨幅超过bIncrease则投资,如果预测跌幅超过bDecrease则出售
+- Specific data preprocessing steps 
+- Detailed explanation of prediction models
+- Parameter tuning process
+- Formulas for risk metrics
+- Pseudocode for trading strategy
